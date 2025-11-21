@@ -1,0 +1,8 @@
+- name: Kubernetes Worker Node Join
+  hosts: kube-node
+  become: yes
+  tasks:
+    - name: Execute the Kubeadm Join Command
+      ansible.builtin.shell: "{{ hostvars['k8s-control-plane']['kube_join_command'] }}"
+      args:
+        creates: /etc/kubernetes/kubelet.conf

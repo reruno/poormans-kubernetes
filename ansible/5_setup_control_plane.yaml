@@ -1,0 +1,54 @@
+- name: Kubernetes Control Plane Initialization and Calico Setup
+  hosts: kube-master
+  become: yes
+  tasks:
+    - name: Initialize the Kubernetes Cluster (kubeadm init)
+      # Ensure you replace 10.0.1.79 with the correct private IP of your control plane if necessary
+      # Using ansible_host here will automatically use the correct address.
+      ansible.builtin.shell: >
+        kubeadm init
+      args:
+        # Prevents running kubeadm init if the cluster config already exists
+        creates: /etc/kubernetes/admin.conf
+
+    - name: Create .kube directory for the current user ({{ ansible_user }})
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.kube"
+        state: directory
+        owner: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: Copy admin.conf to user's home directory and set permissions
+      # This task combines your copy and chown/chgrp steps
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "/home/{{ ansible_user }}/.kube/config"
+        remote_src: yes
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+
+    - name: Wait for the API server to be available before installing CNI
+      ansible.builtin.command: kubectl cluster-info
+      register: kube_info_result
+      retries: 10
+      delay: 5
+      until: kube_info_result.rc == 0
+      environment:
+        # Use the copied config file to run kubectl commands
+        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+
+    - name: Install Calico Network Plugin
+      ansible.builtin.command: >
+        kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      environment:
+        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+    
+    - name: Generate Kubeadm Join Command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: kubeadm_join_command
+
+    - name: Set Join Command as a fact (for Worker Node playbook)
+      ansible.builtin.set_fact:
+        kube_join_command: "{{ kubeadm_join_command.stdout }}"
+    

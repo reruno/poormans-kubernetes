@@ -1,0 +1,22 @@
+---
+- name: Phase 1 | Prepare Nodes
+  import_playbook: 1_disable_swap.yaml
+
+- name: Phase 2 | Install Containerd
+  import_playbook: 2_install_containerd.yaml
+
+- name: Phase 3 | Configure Network
+  import_playbook: 3_configure_network.yaml
+
+- name: Phase 4 | Install Kube Tools
+  import_playbook: 4_install_kube_tools.yaml
+
+# -----------------------------------------------------------------
+
+- name: Phase 5 | Setup Control Plane
+  import_playbook: 5_setup_control_plane.yaml
+
+# -----------------------------------------------------------------
+
+- name: Phase 6 | Setup Worker Nodes
+  import_playbook: 6_setup_worker_nodes.yaml

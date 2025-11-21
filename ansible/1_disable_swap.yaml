@@ -1,0 +1,30 @@
+- name: Disable and Remove Swap File Permanently
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure all swap devices are deactivated immediately
+      ansible.builtin.command: swapoff -a
+      # Only run if a swap device is actually active to avoid error on dry run or fresh boot
+      when: ansible_swaptoggle_facter.swaps is defined and ansible_swaptoggle_facter.swaps | length > 0
+      # You may need to install the 'facter' package or rely on `ansible_swaptoggle_facter` 
+      # or use a check command if running on non-standard AMIs.
+
+    - name: Remove swap file entry from /etc/fstab
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^(\s*[^#].*?\sswap\s+sw\s+0\s+0\s*)$'
+        # The regexp looks for any line that is NOT commented out (#) and contains 'swap sw 0 0'
+        state: absent
+        backup: yes
+      register: fstab_change
+
+    - name: Remove the /swapfile itself (if it exists)
+      ansible.builtin.file:
+        path: /swapfile
+        state: absent
+      when: fstab_change.changed or not fstab_change.found
+
+    - name: Notify on fstab change
+      ansible.builtin.debug:
+        msg: "Swap was disabled and the /etc/fstab entry was removed. A reboot is recommended."
+      when: fstab_change.changed
