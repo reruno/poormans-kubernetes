@@ -27,6 +27,58 @@ resource "aws_security_group" "allow_ssh_external" {
   depends_on = [ aws_subnet.public_subnet_a ]
 }
 
+resource "aws_security_group" "allow_http_external" {
+  name        = "allow_http_external"
+  description = "Allow inbound HTTP traffic from the internet"
+  vpc_id      = aws_subnet.public_subnet_a.vpc_id 
+
+  # Inbound Rule: Allow HTTP (Port 80) from anywhere
+  ingress {
+    description = "HTTP from internet"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Outbound Rule: Allow all traffic to leave the instance
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_http_external"
+  }
+}
+resource "aws_security_group" "allow_all_external" {
+  name        = "allow_all_external"
+  description = "Allow all inbound and outbound traffic"
+  vpc_id      = aws_subnet.public_subnet_a.vpc_id   # Replace with your VPC ID or resource reference
+
+  # Inbound Rule: Allow everything
+  ingress {
+    description = "Allow all inbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"  # "-1" is the semantic equivalent of "all protocols"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Outbound Rule: Allow everything
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_all_external"
+  }
+}
 resource "aws_security_group" "allow_ssh_internal" {
   name        = "allow-ssh-from-vpc-sg"
   description = "Allow SSH inbound traffic from VPC"
@@ -157,16 +209,16 @@ resource "aws_key_pair" "my_key" {
 # "ami-0bdbe4d582d76c8ca" # Debian arm64
 resource "aws_instance" "public_instance_1" {
   ami           = "ami-0f439e819ba112bd7"  
-  instance_type = "t3a.small"
+  instance_type = "t3a.medium"
   subnet_id     = aws_subnet.public_subnet_a.id
 
   key_name = aws_key_pair.my_key.key_name 
 
   vpc_security_group_ids = [
     aws_security_group.allow_ssh_external.id,
+    aws_security_group.allow_http_external.id,
+    aws_security_group.allow_all_external.id,
     aws_security_group.allow_ssh_internal.id,
-    aws_security_group.allow_ping_internal.id,
-    aws_security_group.allow_grpc_internal.id,
     aws_security_group.allow_all_internal.id,
   ]
   tags = {
@@ -175,9 +227,9 @@ resource "aws_instance" "public_instance_1" {
 
   depends_on = [ 
     aws_security_group.allow_ssh_external,
+    aws_security_group.allow_http_external,
+    aws_security_group.allow_all_external,
     aws_security_group.allow_ssh_internal,
-    aws_security_group.allow_ping_internal,
-    aws_security_group.allow_grpc_internal,
     aws_security_group.allow_all_internal,
   ]
 }
@@ -191,8 +243,6 @@ resource "aws_instance" "private_instance_1" {
 
   vpc_security_group_ids = [
     aws_security_group.allow_ssh_internal.id,
-    aws_security_group.allow_ping_internal.id,
-    aws_security_group.allow_grpc_internal.id,
     aws_security_group.allow_all_internal.id,
   ]
   tags = {
@@ -201,8 +251,28 @@ resource "aws_instance" "private_instance_1" {
 
   depends_on = [ 
     aws_security_group.allow_ssh_internal,
-    aws_security_group.allow_ping_internal,
-    aws_security_group.allow_grpc_internal,
+    aws_security_group.allow_all_internal,
+  ]
+}
+
+
+resource "aws_instance" "private_instance_2" {
+  ami           = "ami-0f439e819ba112bd7"  
+  instance_type = "t3a.small"
+  subnet_id     = aws_subnet.private_subnet_b.id
+
+  key_name = aws_key_pair.my_key.key_name 
+
+  vpc_security_group_ids = [
+    aws_security_group.allow_ssh_internal.id,
+    aws_security_group.allow_all_internal.id,
+  ]
+  tags = {
+    Name = "private-instance-2-pm-k8s"
+  }
+
+  depends_on = [ 
+    aws_security_group.allow_ssh_internal,
     aws_security_group.allow_all_internal,
   ]
 }

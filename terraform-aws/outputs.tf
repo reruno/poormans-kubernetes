@@ -12,3 +12,8 @@ output "ec2_private_instance_1_private_ip" {
   description = "The private IP address of the private_instance_1 instance."
   value       = aws_instance.private_instance_1.private_ip
 }
+
+output "ec2_private_instance_2_private_ip" {
+  description = "The private IP address of the private_instance_1 instance."
+  value       = aws_instance.private_instance_2.private_ip
+}
