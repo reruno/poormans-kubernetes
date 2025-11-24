@@ -3,3 +3,7 @@ variable "aws_region" {
   type        = string
   default     = "eu-central-1"
 }
+
+locals {
+  cluster_name = "kubernetes" 
+}

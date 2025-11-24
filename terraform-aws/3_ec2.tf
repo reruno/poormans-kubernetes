@@ -22,6 +22,7 @@ resource "aws_security_group" "allow_ssh_external" {
 
   tags = {
     Name = "sg-allow-ssh-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
   }
 
   depends_on = [ aws_subnet.public_subnet_a ]
@@ -51,6 +52,7 @@ resource "aws_security_group" "allow_http_external" {
 
   tags = {
     Name = "allow_http_external"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
   }
 }
 resource "aws_security_group" "allow_all_external" {
@@ -77,6 +79,7 @@ resource "aws_security_group" "allow_all_external" {
 
   tags = {
     Name = "allow_all_external"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
   }
 }
 resource "aws_security_group" "allow_ssh_internal" {
@@ -103,6 +106,7 @@ resource "aws_security_group" "allow_ssh_internal" {
 
   tags = {
     Name = "sg-allow-ssh-from-vpc-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
   }
 
   depends_on = [ aws_subnet.private_subnet_b ]
@@ -134,7 +138,8 @@ resource "aws_security_group" "allow_ping_internal" {
   }
 
   tags = {
-    Name = "sg-allow-ping-internal-k8s"
+    Name = "sg-allow-ping-internal-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
   }
 }
 
@@ -163,7 +168,8 @@ resource "aws_security_group" "allow_grpc_internal" {
   }
 
   tags = {
-    Name = "sg-allow-grpc-internal-k8s"
+    Name = "sg-allow-grpc-internal-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
   }
 }
 
@@ -196,7 +202,8 @@ resource "aws_security_group" "allow_all_internal" {
   }
 
   tags = {
-    Name = "sg-allow-all-internal-k8s"
+    Name = "sg-allow-all-internal-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
   }
 }
 
@@ -221,8 +228,17 @@ resource "aws_instance" "public_instance_1" {
     aws_security_group.allow_ssh_internal.id,
     aws_security_group.allow_all_internal.id,
   ]
+
+  iam_instance_profile = aws_iam_instance_profile.node_profile.id
+
   tags = {
     Name = "public-instance-1-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
+  }
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required" 
+    http_put_response_hop_limit = 2          
   }
 
   depends_on = [ 
@@ -244,17 +260,28 @@ resource "aws_instance" "private_instance_1" {
   vpc_security_group_ids = [
     aws_security_group.allow_ssh_internal.id,
     aws_security_group.allow_all_internal.id,
+    aws_security_group.allow_all_external.id,
   ]
+
+  iam_instance_profile = aws_iam_instance_profile.node_profile.id
+
   tags = {
     Name = "private-instance-1-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
+  }
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required" 
+    http_put_response_hop_limit = 2          
   }
 
   depends_on = [ 
     aws_security_group.allow_ssh_internal,
     aws_security_group.allow_all_internal,
+    aws_security_group.allow_all_external,
   ]
 }
-
 
 resource "aws_instance" "private_instance_2" {
   ami           = "ami-0f439e819ba112bd7"  
@@ -266,13 +293,25 @@ resource "aws_instance" "private_instance_2" {
   vpc_security_group_ids = [
     aws_security_group.allow_ssh_internal.id,
     aws_security_group.allow_all_internal.id,
+    aws_security_group.allow_all_external.id,
   ]
+
+  iam_instance_profile = aws_iam_instance_profile.node_profile.id
+
   tags = {
     Name = "private-instance-2-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
+  }
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required" 
+    http_put_response_hop_limit = 2          
   }
 
   depends_on = [ 
     aws_security_group.allow_ssh_internal,
     aws_security_group.allow_all_internal,
+    aws_security_group.allow_all_external,
   ]
 }

@@ -22,3 +22,4 @@ resource "helm_release" "istiod" {
 
     depends_on = [ kubernetes_namespace.istio_system, helm_release.istio_base ]
 }
+

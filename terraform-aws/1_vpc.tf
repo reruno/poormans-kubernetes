@@ -17,6 +17,8 @@ resource "aws_subnet" "public_subnet_a" {
 
   tags = {
     Name = "public-subnet-a-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
+    "kubernetes.io/role/elb" = "1"
   }
 
   depends_on = [ aws_vpc.poormans_kubernetes ]
@@ -31,6 +33,8 @@ resource "aws_subnet" "private_subnet_b" {
 
   tags = {
     Name = "private-subnet-b-pm-k8s"
+    "kubernetes.io/cluster/${local.cluster_name}" = "owned"
+    "kubernetes.io/role/internal-elb" = "1"
   }
 
   depends_on = [ aws_vpc.poormans_kubernetes ]
