@@ -215,7 +215,7 @@ resource "aws_key_pair" "my_key" {
 # "ami-0f439e819ba112bd7" # Debian amd64
 # "ami-0bdbe4d582d76c8ca" # Debian arm64
 resource "aws_instance" "public_instance_1" {
-  ami           = "ami-0f439e819ba112bd7"  
+  ami           = var.ec2_image
   instance_type = "t3a.medium"
   subnet_id     = aws_subnet.public_subnet_a.id
 
@@ -251,7 +251,7 @@ resource "aws_instance" "public_instance_1" {
 }
 
 resource "aws_instance" "private_instance_1" {
-  ami           = "ami-0f439e819ba112bd7"  
+  ami           = var.ec2_image
   instance_type = "t3a.small"
   subnet_id     = aws_subnet.private_subnet_b.id
 
@@ -284,7 +284,7 @@ resource "aws_instance" "private_instance_1" {
 }
 
 resource "aws_instance" "private_instance_2" {
-  ami           = "ami-0f439e819ba112bd7"  
+  ami           = var.ec2_image
   instance_type = "t3a.small"
   subnet_id     = aws_subnet.private_subnet_b.id
 

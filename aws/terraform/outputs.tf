@@ -17,3 +17,8 @@ output "ec2_private_control_plane_private_ip" {
   description = "The private IP address of the private_instance_1 instance."
   value       = aws_instance.private_instance_2.private_ip
 }
+
+output "vpc_id" {
+  description = "VPC ID of pm k8s."
+  value       = aws_vpc.poormans_kubernetes.id
+}

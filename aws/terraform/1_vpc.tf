@@ -11,7 +11,7 @@ resource "aws_subnet" "public_subnet_a" {
 
   cidr_block = "10.0.1.0/24"
 
-  availability_zone = "eu-central-1a"
+  availability_zone = var.aws_az_1
 
   map_public_ip_on_launch = true
 
@@ -29,7 +29,7 @@ resource "aws_subnet" "private_subnet_b" {
 
   cidr_block = "10.0.2.0/24"
 
-  availability_zone = "eu-central-1b"
+  availability_zone = var.aws_az_2
 
   tags = {
     Name = "private-subnet-b-pm-k8s"
