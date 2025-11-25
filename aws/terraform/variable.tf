@@ -18,7 +18,7 @@ variable "aws_az_2" {
 
 variable "ec2_image" {
   type = string
-  default = "ami-086508493974ec350" # debian
+  default = "ami-086508493974ec350" # debian, default user: admin
 }
 
 locals {

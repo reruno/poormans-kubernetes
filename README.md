@@ -23,3 +23,10 @@ clusters:
     proxy-url: socks5://localhost:1080  # Add this line
   name: my-cluster
 ```
+
+## Hetzner 
+
+```
+terraform plan -var="hcloud_token=your_actual_token_here"
+terraform apply -var="hcloud_token=your_actual_token_here"
+```

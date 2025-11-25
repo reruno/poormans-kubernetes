@@ -18,11 +18,19 @@
         owner: "{{ ansible_user }}"
         mode: '0755'
 
+    - name: Ensure .kube directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.kube"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
     - name: Copy admin.conf to user's home directory and set permissions
       # This task combines your copy and chown/chgrp steps
       ansible.builtin.copy:
         src: /etc/kubernetes/admin.conf
-        dest: "/home/{{ ansible_user }}/.kube/config"
+        dest: "{{ ansible_env.HOME }}/.kube/config"
         remote_src: yes
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
@@ -36,14 +44,20 @@
       until: kube_info_result.rc == 0
       environment:
         # Use the copied config file to run kubectl commands
-        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+        KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"
 
     - name: Install Calico Network Plugin
       ansible.builtin.command: >
         kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
       environment:
-        KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+        KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"
     
+    - name: Remove control plane taint to enable scheduling pods on all nodes
+      ansible.builtin.command: >
+        kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+      environment:
+        KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"
+
     - name: Generate Kubeadm Join Command
       ansible.builtin.command: kubeadm token create --print-join-command
       register: kubeadm_join_command

@@ -1,0 +1,34 @@
+resource "hcloud_ssh_key" "default" {
+  name       = "terraform-ssh-key"
+  public_key = file("~/.ssh/id_ed25519.pub") # Adjust path if your key is elsewhere
+}
+
+resource "hcloud_network" "private_net" {
+  name     = "internal-network"
+  ip_range = "10.0.0.0/16"
+}
+
+resource "hcloud_network_subnet" "private_subnet" {
+  network_id   = hcloud_network.private_net.id
+  type         = "cloud"
+  network_zone = "eu-central"
+  ip_range     = "10.0.1.0/24"
+}
+
+resource "hcloud_server" "node" {
+  count       = 3
+  name        = "node-${count.index + 1}" 
+  server_type = "cx23"                    
+  image       = "debian-13" # default user: root
+  location    = "nbg1"                    
+  ssh_keys    = [hcloud_ssh_key.default.id]
+
+  network {
+    network_id = hcloud_network.private_net.id
+    ip         = "10.0.1.${10 + count.index}" 
+  }
+
+  depends_on = [
+    hcloud_network_subnet.private_subnet
+  ]
+}
