@@ -9,11 +9,6 @@ terraform {
       version = ">= 2.0.0"
     }
   }
-  backend "s3" {
-    bucket = "poormans-kubernetes-terraform-state-32412"
-    region = "eu-central-1"
-    key = "terraform/poormans-kubernetes/terraform-hetzner-kubernetes.tfstate"
-  }
 }
 
 provider "helm" {
