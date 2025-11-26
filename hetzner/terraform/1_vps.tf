@@ -1,6 +1,6 @@
 resource "hcloud_ssh_key" "default" {
   name       = "terraform-ssh-key"
-  public_key = file("~/.ssh/id_ed25519.pub") # Adjust path if your key is elsewhere
+  public_key = file("~/.ssh/id_ed25519.pub") 
 }
 
 resource "hcloud_network" "private_net" {
@@ -16,7 +16,7 @@ resource "hcloud_network_subnet" "private_subnet" {
 }
 
 resource "hcloud_server" "node" {
-  count       = 3
+  count       = 2
   name        = "node-${count.index + 1}" 
   server_type = "cx23"                    
   image       = "debian-13" # default user: root
