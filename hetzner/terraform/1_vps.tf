@@ -20,7 +20,7 @@ resource "hcloud_server" "node" {
   name        = "node-${count.index + 1}" 
   server_type = "cx23"                    
   image       = "debian-13" # default user: root
-  location    = "nbg1"                    
+  location    = "nbg1"
   ssh_keys    = [hcloud_ssh_key.default.id]
 
   network {

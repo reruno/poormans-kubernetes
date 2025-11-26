@@ -1,18 +1,35 @@
-# gateway-api.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: nginx-gateway
   namespace: default
+  annotations:
+    # This magic line triggers the certificate generation
+    cert-manager.io/cluster-issuer: letsencrypt-issuer
 spec:
   gatewayClassName: istio
   listeners:
+  # 1. HTTP Listener (keep this for the challenge to work)
   - name: http
     port: 80
     protocol: HTTP
+    hostname: example.com 
     allowedRoutes:
       namespaces:
         from: Same
+  
+  # 2. HTTPS Listener (New)
+  - name: https
+    port: 443
+    protocol: HTTPS
+    hostname: example.com
+    allowedRoutes:
+      namespaces:
+        from: Same
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: example-com-tls # Cert-manager will create this Secret automatically
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -22,6 +39,11 @@ metadata:
 spec:
   parentRefs:
   - name: nginx-gateway
+    sectionName: http  # Attach to port 80
+  - name: nginx-gateway
+    sectionName: https # Attach to port 443
+  hostnames:
+  - "example.com"
   rules:
   - matches:
     - path:
