@@ -7,3 +7,8 @@ variable "acme_email" {
   description = "The email address used for Let's Encrypt registration and expiration warnings."
   type        = string
 }
+
+variable "kube_config_path" {
+  description = "Path to the kubeconfig file used by the providers"
+  type        = string
+}
