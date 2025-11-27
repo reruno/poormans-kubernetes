@@ -293,6 +293,7 @@ def main():
     tf_output_json_path = os.path.join(script_dir, "tmpfile_terraform_output.json")
     inventory_ini_path = os.path.join(script_dir, "tmpfile_inventory.ini")
     local_kubeconfig_path = os.path.join(script_dir, "tmpfile_kube_config")
+    readme_path = os.path.join(script_dir, "tmpfile_readme.txt")
     
     # Nginx App Manifests
     nginx_manifest_src = os.path.join(script_dir, "example-kubernetes", "nginx-app-http-redirect.yaml")
@@ -474,21 +475,39 @@ def main():
         # Unregister to avoid double calling
         atexit.unregister(cleanup_proxy)
 
-    print("\n==============================================")
-    print("       CLUSTER SETUP COMPLETE")
-    print("==============================================")
-    print(f"MetalLB IP set to: {master_pub_ip}/32")
-    print(f"ACME Email set to: {args.acme_email}")
-    print(f"1. Kubeconfig: {local_kubeconfig_path}")
-    print(f"2. To remove the example app: kubectl delete -f {nginx_manifest_tmp}")
-    print("3. To access the cluster, open an SSH tunnel in a separate terminal:")
+    # 13. Summary Output (Console + File)
+    summary_lines = [
+        "\n==============================================",
+        "       CLUSTER SETUP COMPLETE",
+        "==============================================",
+        f"MetalLB IP set to: {master_pub_ip}/32",
+        f"ACME Email set to: {args.acme_email}",
+        f"1. Kubeconfig: {local_kubeconfig_path}",
+        f"2. To remove the example app: kubectl delete -f {nginx_manifest_tmp}",
+        "3. To access the cluster, open an SSH tunnel in a separate terminal:"
+    ]
+    
     if bastion_ip:
-        print(f"   ssh -i {args.ssh_private_key_path} -D 1080 -q -N -J root@{bastion_ip} root@{master_priv_ip}")
+        summary_lines.append(f"   ssh -i {args.ssh_private_key_path} -D 1080 -q -N -J root@{bastion_ip} root@{master_priv_ip}")
     else:
-        print(f"   ssh -i {args.ssh_private_key_path} -D 1080 -q -N root@{master_pub_ip}")
-    print("\n4. Then use kubectl with the generated config:")
-    print(f"   export KUBECONFIG={local_kubeconfig_path}")
-    print("   kubectl get nodes")
+        summary_lines.append(f"   ssh -i {args.ssh_private_key_path} -D 1080 -q -N root@{master_pub_ip}")
+        
+    summary_lines.append("\n4. Then use kubectl with the generated config:")
+    summary_lines.append(f"   export KUBECONFIG={local_kubeconfig_path}")
+    summary_lines.append("   kubectl get nodes")
+    
+    summary_text = "\n".join(summary_lines)
+    
+    # Print to console
+    print(summary_text)
+    
+    # Save to file
+    try:
+        with open(readme_path, "w") as f:
+            f.write(summary_text)
+        print(f"\nSummary saved to: {readme_path}")
+    except IOError as e:
+        print(f"\nWarning: Failed to save summary file: {e}")
 
 if __name__ == "__main__":
     main()
