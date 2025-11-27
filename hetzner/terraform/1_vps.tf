@@ -1,6 +1,6 @@
 resource "hcloud_ssh_key" "default" {
   name       = "terraform-ssh-key"
-  public_key = file("~/.ssh/id_ed25519.pub") 
+  public_key = file(var.ssh_public_key_path) 
 }
 
 resource "hcloud_network" "private_net" {

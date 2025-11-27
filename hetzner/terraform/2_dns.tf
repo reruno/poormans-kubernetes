@@ -1,6 +1,6 @@
 # existing dns zone in hetzner
 data "hcloud_zone" "main" {
-    name = "ellieada.com"
+    name = var.hetzner_zone_domain
 }
 # 2. Define the Existing A Record (e.g., for the root domain @)
 resource "hcloud_zone_rrset" "root" {

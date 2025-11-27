@@ -1,0 +1,115 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx-gateway
+  namespace: default
+  annotations:
+    # This magic line triggers the certificate generation
+    cert-manager.io/cluster-issuer: letsencrypt-issuer
+spec:
+  gatewayClassName: istio
+  listeners:
+  # 1. HTTP Listener (keep this for the challenge to work)
+  - name: http
+    port: 80
+    protocol: HTTP
+    hostname: example.com 
+    allowedRoutes:
+      namespaces:
+        from: Same
+  
+  # 2. HTTPS Listener (New)
+  - name: https
+    port: 443
+    protocol: HTTPS
+    hostname: example.com 
+    allowedRoutes:
+      namespaces:
+        from: Same
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: example-com-tls # Cert-manager will create this Secret automatically
+---
+# 2. Define the HTTPRoute for redirecting to HTTPS
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: nginx-redirect
+  namespace: default
+spec:
+  parentRefs:
+  # This must point to your HTTP (Port 80) listener
+  - name: nginx-gateway
+    sectionName: http 
+  hostnames:
+  - "example.com"
+  rules:
+  - filters:
+    # The actual redirect logic
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+    # We match all paths to redirect them
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: nginx-route
+  namespace: default
+spec:
+  parentRefs:
+  - name: nginx-gateway
+    sectionName: https 
+  hostnames:
+  - "example.com"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: simple-nginx
+      port: 80
+---
+# nginx-app.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-nginx
+  labels:
+    app: simple-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simple-nginx
+  template:
+    metadata:
+      labels:
+        app: simple-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: simple-nginx
+  labels:
+    app: simple-nginx
+spec:
+  selector:
+    app: simple-nginx
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
