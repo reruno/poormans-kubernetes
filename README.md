@@ -30,3 +30,20 @@ clusters:
 terraform plan -var="hcloud_token=your_actual_token_here"
 terraform apply -var="hcloud_token=your_actual_token_here"
 ```
+
+## Cluster up and cluster down 
+```
+python3 ./cluster_up.py \
+--hetzner-zone-domain example.com \
+--hetzner-token <token> \
+--ssh-public-key-path ~/.ssh/id_ed25519.pub \
+--ssh-private-key-path ~/.ssh/id_ed25519 \
+--acme-email example@example.com 
+
+python3 ./cluster_down.py \
+--hetzner-zone-domain example.com \
+--hetzner-token <token> \
+--ssh-public-key-path ~/.ssh/id_ed25519.pub \
+--ssh-private-key-path ~/.ssh/id_ed25519 \
+--acme-email example@example.com 
+```
