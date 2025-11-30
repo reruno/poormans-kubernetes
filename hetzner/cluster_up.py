@@ -12,6 +12,7 @@ import atexit
 def generate_inventory(input_file, output_file, ssh_key_path):
     """
     Generates an Ansible inventory INI file from a Terraform output JSON file.
+    Includes logic for [volume-node].
     """
     print(f"Generating Ansible inventory: {output_file}...")
     
@@ -25,18 +26,24 @@ def generate_inventory(input_file, output_file, ssh_key_path):
         print(f"Error: Could not decode JSON from {input_file}.")
         sys.exit(1)
 
-    # Extract Data
+    # 1. Extract Data
     dns_root_records = tf_data.get('dns_root_record_ip', {}).get('value', {})
     root_ip_address = next(iter(dns_root_records.values())) if dns_root_records else None
     
     private_ips = tf_data.get('server_private_ips', {}).get('value', {})
     public_ips = tf_data.get('server_public_ips', {}).get('value', {})
+    
+    # Extract Volume Node Info
+    # This returns something like: {'node-2': '46.224.86.61'}
+    volume_data = tf_data.get('volume_node_ip', {}).get('value', {})
+    # We only care about the key (e.g., "node-2") to match it to the worker alias
+    volume_node_name = next(iter(volume_data.keys())) if volume_data else None
 
     if not private_ips:
         print("Error: 'server_private_ips' data not found in Terraform output.")
         sys.exit(1)
 
-    # Determine Bastion Logic
+    # 2. Determine Bastion Logic
     bastion_ip = None
     for node, ip in public_ips.items():
         if ip != root_ip_address:
@@ -48,9 +55,10 @@ def generate_inventory(input_file, output_file, ssh_key_path):
 
     master_lines = []
     worker_lines = []
+    volume_lines = []  # List to hold the alias for the volume node
     lines = []
     
-    # [all] Section
+    # 3. Build [all] Section and identify roles
     lines.append("[all]")
     node_names = sorted(private_ips.keys())
     worker_idx = 1
@@ -58,6 +66,7 @@ def generate_inventory(input_file, output_file, ssh_key_path):
     for node_name in node_names:
         private_ip = private_ips[node_name]
         
+        # Determine Alias
         if node_name in dns_root_records:
             host_alias = "k8s-control-plane"
             lines.append(f"{host_alias} ansible_host={private_ip}")
@@ -67,6 +76,10 @@ def generate_inventory(input_file, output_file, ssh_key_path):
             lines.append(f"{host_alias}  ansible_host={private_ip}")
             worker_lines.append(host_alias)
             worker_idx += 1
+        
+        # Check if this specific node is the volume node
+        if node_name == volume_node_name:
+            volume_lines.append(host_alias)
             
     lines.append("") 
 
@@ -80,12 +93,17 @@ def generate_inventory(input_file, output_file, ssh_key_path):
     lines.extend(worker_lines)
     lines.append("")
 
+    # [volume-node] Section (NEW)
+    lines.append("[volume-node]")
+    lines.extend(volume_lines)
+    lines.append("")
+
     # [all:vars] Section
     lines.append("[all:vars]")
     lines.append("ansible_user=root")
     lines.append(f"ansible_ssh_private_key_file={ssh_key_path}")
     
-    # SSH Arguments: Disable strict host key checking for automation
+    # SSH Arguments
     if bastion_ip:
         lines.append(f"# bastion host (Using IP: {bastion_ip})")
         proxy_cmd = f"ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p -q root@{bastion_ip}"
@@ -99,7 +117,7 @@ def generate_inventory(input_file, output_file, ssh_key_path):
         f.write('\n'.join(lines))
     
     print(f"Inventory saved successfully to {output_file}")
-
+    
 # ==========================================
 # 2. Helper Functions
 # ==========================================
@@ -423,9 +441,34 @@ def main():
         
         # Update Env Vars for K8s phase
         tf_k8s_env = tf_env.copy()
+        
+        # --- NEW LOGIC START: Get NFS Private IP ---
+        # We need to read the JSON again to get the private IP of the volume node
+        with open(tf_output_json_path, 'r') as f:
+            tf_data_for_nfs = json.load(f)
+
+        volume_data_nfs = tf_data_for_nfs.get('volume_node_ip', {}).get('value', {})
+        private_ips_nfs = tf_data_for_nfs.get('server_private_ips', {}).get('value', {})
+        
+        nfs_server_ip = ""
+        if volume_data_nfs:
+            # volume_node_ip output is { "node-name": "public_ip" }
+            # We want the node-name key
+            vol_node_name = next(iter(volume_data_nfs.keys()))
+            # Look up its private IP
+            nfs_server_ip = private_ips_nfs.get(vol_node_name, "")
+            
+        if not nfs_server_ip:
+            print("Error: Could not determine NFS Server Private IP. Ensure Terraform output 'volume_node_ip' and 'server_private_ips' exist.")
+            sys.exit(1)
+            
+        print(f"NFS Server IP determined as: {nfs_server_ip}")
+        # --- NEW LOGIC END ---
+
         tf_k8s_env["TF_VAR_metallb_ip"] = f"{master_pub_ip}/32"
         tf_k8s_env["TF_VAR_acme_email"] = args.acme_email
         tf_k8s_env["TF_VAR_kube_config_path"] = local_kubeconfig_path
+        tf_k8s_env["TF_VAR_nfs_server_ip"] = nfs_server_ip  # <--- Added Variable
         tf_k8s_env["KUBECONFIG"] = local_kubeconfig_path
 
         print(f"MetalLB IP set to: {master_pub_ip}/32")
@@ -476,12 +519,19 @@ def main():
         atexit.unregister(cleanup_proxy)
 
     # 13. Summary Output (Console + File)
+    
+    # Reconstruct the command line string
+    # We prepend 'python3' to make it a fully executable command string
+    original_command = "python3 " + " ".join(sys.argv)
+
     summary_lines = [
         "\n==============================================",
         "       CLUSTER SETUP COMPLETE",
         "==============================================",
         f"MetalLB IP set to: {master_pub_ip}/32",
         f"ACME Email set to: {args.acme_email}",
+        f"NFS Server is {nfs_server_ip}",
+        f"0. You can up cluster again using your original command: {original_command}",
         f"1. Kubeconfig: {local_kubeconfig_path}",
         f"2. To remove the example app: kubectl delete -f {nginx_manifest_tmp}",
         "3. To access the cluster, open an SSH tunnel in a separate terminal:"

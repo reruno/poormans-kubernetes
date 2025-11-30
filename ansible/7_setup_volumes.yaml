@@ -1,0 +1,35 @@
+- hosts: volume-node
+  become: true
+  tasks:
+    - name: Get Volume ID
+      shell: ls /dev/disk/by-id/ | grep scsi-0HC_Volume_ | head -n 1
+      register: volume_device_name
+      changed_when: false
+
+    - name: Format Disk (ext4)
+      filesystem:
+        fstype: ext4
+        dev: "/dev/disk/by-id/{{ volume_device_name.stdout }}"
+
+    - name: Mount Disk
+      ansible.posix.mount:
+        path: "/mnt/data-vol" 
+        src: "/dev/disk/by-id/{{ volume_device_name.stdout }}"
+        fstype: ext4
+        state: mounted
+    
+    - name: Install NFS Kernel Server
+      apt:
+        name: nfs-kernel-server
+        state: present
+
+    - name: Configure /etc/exports
+      lineinfile:
+        path: /etc/exports
+        line: "/mnt/data-vol 10.0.0.0/8(rw,sync,no_subtree_check,no_root_squash)"
+        create: yes
+
+    - name: Restart NFS
+      service:
+        name: nfs-kernel-server
+        state: restarted

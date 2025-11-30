@@ -12,3 +12,8 @@ variable "kube_config_path" {
   description = "Path to the kubeconfig file used by the providers"
   type        = string
 }
+
+variable "nfs_server_ip" {
+  description = "The private IP address of the NFS server (Volume Node)"
+  type        = string
+}

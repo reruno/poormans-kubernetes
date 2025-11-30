@@ -1,5 +1,5 @@
 ---
-- name: Install Kubernetes Tools (v1.33)
+- name: Install Kubernetes Tools (v1.34)
   hosts: all
   become: yes
   
@@ -7,7 +7,7 @@
     - name: Update apt cache
       ansible.builtin.apt:
         update_cache: yes
-        cache_valid_time: 3600 # Cache valid for 1 hour
+        cache_valid_time: 3600 
 
     - name: Install essential dependencies
       ansible.builtin.apt:
@@ -16,6 +16,7 @@
           - ca-certificates
           - curl
           - gpg
+          - nfs-common
         state: present
 
     - name: Create the keyring directory
@@ -26,13 +27,13 @@
 
     - name: Download and add Kubernetes GPG key
       ansible.builtin.shell: >
-        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.33/deb/Release.key | 
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | 
         sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg --yes
 
     - name: Add the Kubernetes APT repository to sources.list.d
       ansible.builtin.lineinfile:
         path: /etc/apt/sources.list.d/kubernetes.list
-        line: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.33/deb/ /"
+        line: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /"
         create: yes
         state: present
         

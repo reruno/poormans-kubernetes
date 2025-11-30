@@ -16,3 +16,15 @@ output "dns_root_record_ip" {
     (hcloud_server.node[0].name) = hcloud_server.node[0].ipv4_address
   }
 }
+
+output "volume_node_ip" {
+  description = "The specific server IP that volume is attached to"
+  value = {
+    (hcloud_server.node[1].name) = hcloud_server.node[1].ipv4_address
+  }
+}
+
+output "volume_id" {
+  description = "The specific server IP that volume is attached to"
+  value = hcloud_volume.data_vol.id
+}

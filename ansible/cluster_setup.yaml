@@ -20,3 +20,6 @@
 
 - name: Phase 6 | Setup Worker Nodes
   import_playbook: 6_setup_worker_nodes.yaml
+
+- name: Phase 7 | Setup Volume for volume nodes
+  import_playbook: 7_setup_volumes.yaml
