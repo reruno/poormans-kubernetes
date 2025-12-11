@@ -33,3 +33,9 @@
       service:
         name: nfs-kernel-server
         state: restarted
+
+    - name: Create local volume data directory with 777 permissions
+      file:
+        path: /mnt/data-vol/local-storage 
+        state: directory
+        mode: '0777'

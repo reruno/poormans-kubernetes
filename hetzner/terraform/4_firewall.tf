@@ -27,7 +27,13 @@ resource "hcloud_firewall" "k8s_protection" {
     port      = "443"
     source_ips = ["0.0.0.0/0", "::/0"]
   }
-
+  # allow 6443 port grpc
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "6443"
+    source_ips = ["0.0.0.0/0", "::/0"]
+  }
   # ICMP: Allow Ping (Optional, but useful for debugging)
   rule {
     direction = "in"

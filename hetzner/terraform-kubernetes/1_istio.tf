@@ -21,5 +21,14 @@ resource "helm_release" "istiod" {
     namespace  = "istio-system"
 
     depends_on = [ kubernetes_namespace.istio_system, helm_release.istio_base ]
+    values = [
+      yamlencode({
+        pilot = {
+          env = {
+            PILOT_ENABLE_ALPHA_GATEWAY_API = "true"
+          }
+        }
+      })
+    ]
 }
 

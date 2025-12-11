@@ -1,5 +1,5 @@
 data "http" "gateway_api_release" {
-    url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml"
+    url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/experimental-install.yaml"
 }
 
 data "kubectl_file_documents" "gateway_api_docs" {
