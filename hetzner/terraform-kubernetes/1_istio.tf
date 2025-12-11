@@ -27,6 +27,16 @@ resource "helm_release" "istiod" {
           env = {
             PILOT_ENABLE_ALPHA_GATEWAY_API = "true"
           }
+          resources = {
+            requests = {
+              cpu    = "500m"
+              memory = "512Mi" # Request half of the limit (best practice)
+            }
+            limits = {
+              cpu    = "1000m"
+              memory = "1Gi"   # Hard limit of 1GB
+            }
+          }
         }
       })
     ]
