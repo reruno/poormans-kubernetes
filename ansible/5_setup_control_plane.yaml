@@ -20,7 +20,7 @@
 
     - name: Ensure .kube directory exists
       ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.kube"
+        path: "{{ ansible_facts.env.HOME }}/.kube"
         state: directory
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
@@ -30,7 +30,7 @@
       # This task combines your copy and chown/chgrp steps
       ansible.builtin.copy:
         src: /etc/kubernetes/admin.conf
-        dest: "{{ ansible_env.HOME }}/.kube/config"
+        dest: "{{ ansible_facts.env.HOME }}/.kube/config"
         remote_src: yes
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
@@ -44,19 +44,19 @@
       until: kube_info_result.rc == 0
       environment:
         # Use the copied config file to run kubectl commands
-        KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"
+        KUBECONFIG: "{{ ansible_facts.env.HOME }}/.kube/config"
 
     - name: Install Calico Network Plugin
       ansible.builtin.command: >
         kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
       environment:
-        KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"
+        KUBECONFIG: "{{ ansible_facts.env.HOME }}/.kube/config"
     
     - name: Remove control plane taint to enable scheduling pods on all nodes
       ansible.builtin.command: >
         kubectl taint nodes --all node-role.kubernetes.io/control-plane- 
       environment:
-        KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"
+        KUBECONFIG: "{{ ansible_facts.env.HOME }}/.kube/config"
       ignore_errors: true # we are ignoring this error because on a second run it will always end in error because the taint was removed 
 
     - name: Generate Kubeadm Join Command
